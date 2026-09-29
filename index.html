@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Конференция 2026: лиды и переток в NEWBIZ</title>
+<style>
+:root{--ink:#1c2733;--mut:#6b7885;--bg:#f4f5f7;--card:#fff;--navy:#243447;--gold:#b8975a;--blue:#4a7bd0;--red:#d0605a;--green:#5aa36b;--line:#e3e6ea}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 -apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+header{background:var(--navy);color:#fff;padding:18px 24px;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+header b{font-size:22px;letter-spacing:.08em;color:var(--gold)}
+header span{color:#b9c4d0;font-size:13px;margin-left:auto}
+main{max-width:1080px;margin:0 auto;padding:20px 16px 48px}
+h2{font-size:18px;margin:32px 0 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px 18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.k{font-size:30px;font-weight:600;line-height:1.1}
+.l{color:var(--mut);font-size:13px}
+.row{display:grid;grid-template-columns:minmax(120px,240px) 1fr 90px;gap:10px;align-items:center;margin:6px 0;font-size:14px}
+.bar{height:16px;background:#eef0f3;border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--blue)}
+.row em{font-style:normal;text-align:right;color:var(--mut)}
+.tabs button{border:1px solid var(--line);background:#fff;padding:5px 12px;border-radius:5px;cursor:pointer;font:inherit}
+.tabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:7px 8px;text-align:right;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--mut);font-weight:500}
+.warn{color:var(--red)}
+.scroll{overflow-x:auto}
+@media(max-width:560px){.row{grid-template-columns:1fr 70px}.row .bar{grid-column:1/3;order:3}}
+</style>
+</head>
+<body>
+<header><b>RORE</b><strong>Конференция 2026: лиды и переток в NEWBIZ</strong><span id="upd"></span></header>
+<main id="app"><p>Загрузка…</p></main>
+<script>
+const fmt=n=>n.toLocaleString("ru-RU"),pct=(a,b)=>b?(a/b*100).toFixed(1)+"%":"—";
+const bars=(items,total,color)=>items.map(i=>`<div class="row"><span>${i.name}</span><div class="bar"><i style="width:${total?i.n/total*100:0}%;${color?'background:'+color:''}"></i></div><em>${fmt(i.n)} · ${pct(i.n,total)}</em></div>`).join("");
+const card=(k,l,cls)=>`<div class="card"><div class="k ${cls||''}">${k}</div><div class="l">${l}</div></div>`;
+function ftable(f){return `<div class="scroll"><table><tr><th>Этап</th><th>Дошло</th><th>Шаг</th><th>Сквозная</th></tr>${f.map(s=>`<tr><td>${s.name}</td><td>${fmt(s.n)}</td><td>${s.step}%</td><td>${s.cum}%</td></tr>`).join("")}</table></div>`}
+fetch("data.json?"+Date.now()).then(r=>r.json()).then(d=>{
+  const b=d.base,s=d.split,q=d.quality,nb=d.newbiz;
+  document.getElementById("upd").textContent="Обновлено: "+d.generated_at.replace("T"," ")+" UTC";
+  const excl=b.all-b.clean;
+  let mode="group";
+  const draw=()=>{
+    let items=d.reasons;
+    if(mode==="group"){const g={};d.reasons.forEach(r=>g[r.group]=(g[r.group]||0)+r.n);items=Object.entries(g).map(([name,n])=>({name,n})).sort((a,c)=>c.n-a.n)}
+    document.getElementById("reasons").innerHTML=bars(items,s.refused,"var(--red)")||"<p class='l'>Отказов пока нет</p>";
+  };
+  document.getElementById("app").innerHTML=`
+  <h2>Чистые лиды конференции</h2>
+  <div class="grid">
+    ${card(fmt(b.all),"лидов в воронке")}
+    ${card("−"+fmt(excl),`сотрудники: ползунок ${b.staff_toggle}, причина отказа ${b.staff_reason}, оба признака ${b.staff_both}`)}
+    ${card(fmt(b.clean),"чистых лидов, база для всех процентов")}
+  </div>
+  <h2>Что произошло с чистыми лидами</h2>
+  <div class="card">${bars([{name:"Забрали в NEWBIZ",n:s.taken},{name:"Отказ с причиной",n:s.refused},{name:"Без решения",n:s.undecided}],b.clean)}
+  <p class="l">Для ${fmt(s.matched)} из ${fmt(s.taken)} забранных лидов найдена сделка в NEWBIZ.</p></div>
+  <h2>Причины отказа</h2>
+  <div class="card"><div class="tabs"><button class="on" data-m="group">По группам</button> <button data-m="all">Все причины</button></div><div id="reasons" style="margin-top:10px"></div></div>
+  <h2>Воронка NEWBIZ по лидам конференции</h2>
+  <div class="grid">
+    ${card(fmt(nb.deals),"сделок в NEWBIZ")}
+    ${card(fmt(nb.won),"выиграно")}
+    ${card(fmt(nb.lost),"проиграно")}
+    ${card(fmt(nb.open),"в работе")}
+  </div>
+  <div class="card" style="margin-top:12px">${ftable(nb.funnel)}
+  <p class="l">«Шаг» — доля от предыдущего этапа, «Сквозная» — доля от всех сделок конференции в NEWBIZ. Этап считается пройденным по истории смен статусов.</p></div>
+  <h2>Сравнение с остальными сделками NEWBIZ</h2>
+  <div class="card"><p class="l">Остальных сделок: ${fmt(nb.baseline.deals)}, выиграно ${fmt(nb.baseline.won)} (${pct(nb.baseline.won,nb.baseline.deals)}). У конференции выиграно ${fmt(nb.won)} (${pct(nb.won,nb.deals)}).</p>${ftable(nb.baseline.funnel)}</div>
+  <h2>Причины проигрыша в NEWBIZ</h2>
+  <div class="card">${bars(Object.entries(nb.lost_reasons).map(([name,n])=>({name,n})).sort((a,c)=>c.n-a.n),nb.lost,"var(--red)")||"<p class='l'>Проигранных сделок пока нет</p>"}</div>
+  <h2>Контроль качества данных</h2>
+  <div class="grid">
+    ${card(fmt(q.taken_no_match),"ползунок включён, а сделки NEWBIZ не найдено",q.taken_no_match?"warn":"")}
+    ${card(fmt(q.multi_candidates),"у лида несколько кандидатов, взята ближайшая по времени")}
+    ${card(fmt(q.matched_by_contact)+" / "+fmt(q.matched_by_company),"связь найдена по контакту / только по компании")}
+    ${card(fmt(q.taken_and_refused),"есть и «Новый лид», и причина отказа",q.taken_and_refused?"warn":"")}
+  </div>`;
+  draw();
+  document.querySelectorAll(".tabs button").forEach(x=>x.onclick=()=>{mode=x.dataset.m;document.querySelectorAll(".tabs button").forEach(y=>y.classList.toggle("on",y===x));draw()});
+}).catch(e=>{document.getElementById("app").innerHTML="<p class='warn'>Не удалось загрузить data.json. Запустите workflow update-dashboard в GitHub Actions.</p>"});
+</script>
+</body>
+</html>

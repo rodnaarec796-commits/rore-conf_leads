@@ -1,0 +1,33 @@
+name: update-dashboard
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - run: python build_data.py
+        env:
+          AMO_DOMAIN: roregroup.amocrm.ru
+          AMO_TOKEN: ${{ secrets.AMO_TOKEN }}
+          NEWBIZ_PIPELINE_ID: ${{ secrets.NEWBIZ_PIPELINE_ID }}
+      - run: mkdir site && cp index.html data.json site/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - uses: actions/deploy-pages@v4
