@@ -81,7 +81,8 @@ fetch("data.json?"+Date.now()).then(r=>r.json()).then(d=>{
     ${card(fmt(q.multi_candidates),"у лида несколько кандидатов, взята ближайшая по времени")}
     ${card(fmt(q.matched_by_contact)+" / "+fmt(q.matched_by_company),"связь найдена по контакту / только по компании")}
     ${card(fmt(q.taken_and_refused),"есть и «Новый лид», и причина отказа",q.taken_and_refused?"warn":"")}
-  </div>`;
+  </div>
+  ${(q.unmatched||[]).length?`<h2>Лиды без сделки в NEWBIZ</h2><div class="card scroll"><table><tr><th>Лид</th><th>Ползунок включён</th><th>Почему не нашли пару</th></tr>${q.unmatched.map(u=>`<tr><td><a href="https://roregroup.amocrm.ru/leads/detail/${u.id}" target="_blank" rel="noopener">${u.name}</a></td><td>${u.toggled}</td><td style="text-align:left">${u.why}</td></tr>`).join("")}</table></div>`:""}`;
   draw();
   document.querySelectorAll(".tabs button").forEach(x=>x.onclick=()=>{mode=x.dataset.m;document.querySelectorAll(".tabs button").forEach(y=>y.classList.toggle("on",y===x));draw()});
 }).catch(e=>{document.getElementById("app").innerHTML="<p class='warn'>Не удалось загрузить data.json. Запустите workflow update-dashboard в GitHub Actions.</p>"});
