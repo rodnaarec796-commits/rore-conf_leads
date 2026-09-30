@@ -109,24 +109,23 @@ def main():
     unmatched = []
     for l in taken:
         t = toggle_ts.get(l["id"], l["updated_at"])
-        ok = lambda d: t - TOL <= d["created_at"] <= t + WINDOW
         for src, index, key in (("c", idx_c, "contacts"), ("co", idx_co, "companies")):
-            cands = {d["id"]: d for k in ids(l, key) for d in index.get(k, []) if ok(d)}
+            cands = {d["id"]: d for k in ids(l, key) for d in index.get(k, [])}
             if cands:
                 multi += len(cands) > 1
-                d = min(cands.values(), key=lambda x: x["created_at"])
+                after = [x for x in cands.values() if x["created_at"] >= t - TOL]
+                d = (min(after, key=lambda x: x["created_at"]) if after
+                     else max(cands.values(), key=lambda x: x["created_at"]))
                 matched[l["id"]] = d
                 by_c += src == "c"; by_co += src == "co"
                 break
         else:
             no_match += 1
             cs, cos = ids(l, "contacts"), ids(l, "companies")
-            found = any(idx_c.get(k) for k in cs) or any(idx_co.get(k) for k in cos)
             unmatched.append({
                 "id": l["id"], "name": l["name"],
                 "toggled": datetime.fromtimestamp(t, timezone.utc).strftime("%d.%m.%Y"),
-                "why": ("сделки NEWBIZ есть, но вне окна дат" if found else
-                        "в NEWBIZ нет сделок с этим контактом или компанией" if (cs or cos) else
+                "why": ("в NEWBIZ нет сделок с этим контактом или компанией" if (cs or cos) else
                         "к лиду не привязаны контакт и компания")})
 
     # --- этапы NEWBIZ по истории смен статусов
