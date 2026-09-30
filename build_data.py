@@ -106,6 +106,7 @@ def main():
         for c in ids(d, "contacts"): idx_c.setdefault(c, []).append(d)
         for c in ids(d, "companies"): idx_co.setdefault(c, []).append(d)
     matched, no_match, multi, by_c, by_co = {}, 0, 0, 0, 0
+    unmatched = []
     for l in taken:
         t = toggle_ts.get(l["id"], l["updated_at"])
         ok = lambda d: t - TOL <= d["created_at"] <= t + WINDOW
@@ -119,6 +120,14 @@ def main():
                 break
         else:
             no_match += 1
+            cs, cos = ids(l, "contacts"), ids(l, "companies")
+            found = any(idx_c.get(k) for k in cs) or any(idx_co.get(k) for k in cos)
+            unmatched.append({
+                "id": l["id"], "name": l["name"],
+                "toggled": datetime.fromtimestamp(t, timezone.utc).strftime("%d.%m.%Y"),
+                "why": ("сделки NEWBIZ есть, но вне окна дат" if found else
+                        "в NEWBIZ нет сделок с этим контактом или компанией" if (cs or cos) else
+                        "к лиду не привязаны контакт и компания")})
 
     # --- этапы NEWBIZ по истории смен статусов
     st = stages_of(NEWBIZ_PIPE)
@@ -169,7 +178,7 @@ def main():
                    "baseline": {"deals": len(rest), "funnel": funnel(rest, 0), **outcome(rest)}},
         "quality": {"taken_no_match": no_match, "multi_candidates": multi,
                     "matched_by_contact": by_c, "matched_by_company": by_co,
-                    "taken_and_refused": len(both_flags)},
+                    "taken_and_refused": len(both_flags), "unmatched": unmatched},
     }
     with open("data.json", "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=1)
